@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stock Card</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="card" aria-live="polite">
+    <header class="top">
+      <div class="left">
+        <div class="titleRow">
+          <div class="symbol" id="symbol">—</div>
+          <div class="name" id="name"></div>
+        </div>
+        <div class="time" id="time"></div>
+      </div>
+
+      <div class="controls">
+        <div class="picker">
+          <div class="row">
+            <input id="tickerInput" type="text" placeholder="Type ticker (AAPL, TSLA, SPY)..." autocomplete="off" />
+            <button id="loadBtn" class="btn">Load</button>
+          </div>
+
+          <div class="row row2">
+            <select id="watchSelect" class="select"></select>
+            <button id="saveBtn" class="btn ghost" title="Save to watchlist">★ Save</button>
+            <button id="removeBtn" class="btn ghost" title="Remove from watchlist">✕</button>
+          </div>
+
+          <div id="msg" class="msg" hidden></div>
+        </div>
+      </div>
+    </header>
+
+    <section class="mid">
+      <div class="priceBlock">
+        <div class="price" id="price">—</div>
+        <div class="change" id="change">—</div>
+      </div>
+
+      <div class="sparkWrap">
+        <svg id="spark" viewBox="0 0 200 60" preserveAspectRatio="none" aria-label="Price sparkline">
+          <path id="sparkPath" d="" />
+        </svg>
+        <div class="sparkMeta" id="sparkMeta"></div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="kv"><span>Open</span><strong id="open">—</strong></div>
+      <div class="kv"><span>High</span><strong id="high">—</strong></div>
+      <div class="kv"><span>Low</span><strong id="low">—</strong></div>
+      <div class="kv"><span>Volume</span><strong id="volume">—</strong></div>
+      <div class="kv"><span>52W High</span><strong id="hi52">—</strong></div>
+      <div class="kv"><span>52W Low</span><strong id="lo52">—</strong></div>
+      <div class="kv"><span>Range</span><strong id="range">—</strong></div>
+      <div class="kv"><span>Trend</span><strong id="trend">—</strong></div>
+    </section>
+
+    <footer class="footer" id="note"></footer>
+  </main>
+
+  <!-- Bump v=1 → v=2 if Notion caches older JS -->
+  <script src="./app.js?v=1"></script>
+</body>
+</html>
