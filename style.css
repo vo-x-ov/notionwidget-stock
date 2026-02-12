@@ -83,7 +83,7 @@ input{
   flex: 1;
   border: 1px solid var(--stroke);
   background: #ffffff;  /* light background */
-  color: #000000;       /* black text */
+  color: #111111;       /* black text */
   border-radius: 12px;
   padding: 8px 10px;
   font-size: 12px;
