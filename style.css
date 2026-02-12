@@ -23,7 +23,7 @@ body{
   border: 1px solid var(--stroke);
   background: var(--bg);
   border-radius: 16px;
-  padding: 14px;
+  padding: 14px 14px 10px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 
@@ -32,11 +32,24 @@ body{
   justify-content:space-between;
   align-items:flex-start;
   gap: 14px;
+  margin-bottom: 10px;
+}
+
+.titleRow{
+  display:flex;
+  align-items:baseline;
+  gap: 10px;
 }
 
 .symbol{
   font-weight: 800;
   font-size: 16px;
+  letter-spacing: 0.02em;
+}
+
+.name{
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .time{
@@ -45,11 +58,10 @@ body{
   margin-top: 4px;
 }
 
-.controls{
-  width: min(420px, 100%);
-}
+.controls{ width: min(420px, 100%); }
 
 .picker{
+  width: 100%;
   display:flex;
   flex-direction:column;
   gap: 8px;
@@ -64,10 +76,9 @@ body{
 .row2{
   display:flex;
   gap: 8px;
-  align-items:center;
 }
 
-input{
+.picker input{
   flex: 1;
   border: 1px solid var(--stroke);
   background: rgba(255,255,255,0.05);
@@ -78,22 +89,15 @@ input{
   outline: none;
 }
 
-/* FIXED FAVORITES DROPDOWN */
 .select{
   flex: 1;
   border: 1px solid var(--stroke);
-  background: #ffffff;  /* light background */
-  color: #000000;       /* black text */
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
   border-radius: 12px;
   padding: 8px 10px;
   font-size: 12px;
   outline: none;
-  appearance: auto;
-}
-
-.select option{
-  color: #000000;
-  background: #ffffff;
 }
 
 .btn{
@@ -104,15 +108,10 @@ input{
   padding: 8px 10px;
   font-size: 12px;
   cursor: pointer;
+  white-space: nowrap;
 }
-
-.btn:hover{
-  background: rgba(255,255,255,0.10);
-}
-
-.btn.ghost{
-  background: rgba(255,255,255,0.03);
-}
+.btn:hover{ background: rgba(255,255,255,0.10); }
+.btn.ghost{ background: rgba(255,255,255,0.03); }
 
 .msg{
   font-size: 12px;
@@ -121,8 +120,9 @@ input{
 
 .mid{
   display:flex;
+  align-items:stretch;
   gap: 14px;
-  margin: 12px 0;
+  margin: 10px 0 12px;
 }
 
 .priceBlock{
@@ -130,12 +130,17 @@ input{
   border: 1px solid var(--stroke);
   background: var(--panel);
   border-radius: 14px;
-  padding: 10px;
+  padding: 10px 12px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap: 6px;
 }
 
 .price{
   font-size: 34px;
   font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .change{
@@ -148,7 +153,10 @@ input{
   border: 1px solid var(--stroke);
   background: var(--panel);
   border-radius: 14px;
-  padding: 10px;
+  padding: 10px 12px;
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
 }
 
 #spark{
@@ -160,6 +168,11 @@ input{
   fill: none;
   stroke: rgba(255,255,255,0.85);
   stroke-width: 2;
+}
+
+.sparkMeta{
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .grid{
@@ -176,6 +189,7 @@ input{
   display:flex;
   flex-direction:column;
   gap: 4px;
+  min-height: 54px;
 }
 
 .kv span{
@@ -192,4 +206,10 @@ input{
   margin-top: 10px;
   font-size: 12px;
   color: var(--muted);
+  min-height: 16px;
+}
+
+@media (max-width: 720px){
+  .mid{ flex-direction:column; }
+  .grid{ grid-template-columns: repeat(2, 1fr); }
 }
