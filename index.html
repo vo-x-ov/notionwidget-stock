@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Stock Card</title>
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./style.css?v=2" />
 </head>
 <body>
   <main class="card" aria-live="polite">
@@ -12,11 +12,6 @@
       <div class="left">
         <div class="titleRow">
           <div class="symbol" id="symbol">—</div>
-          <div class="name" id="name"></div>
-        </div>
-        <div class="metaRow">
-          <span class="pill" id="sectorPill" hidden></span>
-          <span class="pill" id="industryPill" hidden></span>
         </div>
         <div class="time" id="time"></div>
       </div>
@@ -24,31 +19,15 @@
       <div class="controls">
         <div class="picker">
           <div class="row">
-            <div class="inputWrap">
-              <input id="tickerInput" type="text" placeholder="Type ticker or company (AAPL, Apple, SPY)..." autocomplete="off" />
-              <div id="suggestions" class="suggestions" hidden></div>
-            </div>
+            <input id="tickerInput" type="text" placeholder="Type ticker (AAPL, TSLA, SPY)..." autocomplete="off" />
             <button id="loadBtn" class="btn">Load</button>
           </div>
 
           <div class="row row2">
             <select id="watchSelect" class="select"></select>
-            <button id="saveBtn" class="btn ghost" title="Save to watchlist">★ Save</button>
-            <button id="removeBtn" class="btn ghost" title="Remove from watchlist">✕</button>
+            <button id="saveBtn" class="btn ghost">★ Save</button>
+            <button id="removeBtn" class="btn ghost">✕</button>
           </div>
-
-          <details class="settings">
-            <summary>Settings</summary>
-            <div class="settingsInner">
-              <label class="lbl" for="apiKeyInput">FMP API Key (enables autocomplete + sector/industry)</label>
-              <input id="apiKeyInput" type="password" placeholder="Paste your FMP key here…" autocomplete="off" />
-              <div class="hint" id="keyHint">
-                If you leave this blank, the widget still loads prices, but search + industry will be limited.
-              </div>
-              <button id="saveKeyBtn" class="btn">Save Key</button>
-              <button id="clearKeyBtn" class="btn ghost">Clear</button>
-            </div>
-          </details>
 
           <div id="msg" class="msg" hidden></div>
         </div>
@@ -62,10 +41,9 @@
       </div>
 
       <div class="sparkWrap">
-        <svg id="spark" viewBox="0 0 200 60" preserveAspectRatio="none" aria-label="Price sparkline">
+        <svg id="spark" viewBox="0 0 200 60" preserveAspectRatio="none">
           <path id="sparkPath" d="" />
         </svg>
-        <div class="sparkMeta" id="sparkMeta"></div>
       </div>
     </section>
 
@@ -78,14 +56,13 @@
       <div class="kv"><span>52W Low</span><strong id="lo52">—</strong></div>
       <div class="kv"><span>Range</span><strong id="range">—</strong></div>
       <div class="kv"><span>Trend</span><strong id="trend">—</strong></div>
-      <div class="kv"><span>Sector</span><strong id="sector">—</strong></div>
-      <div class="kv"><span>Industry</span><strong id="industry">—</strong></div>
     </section>
 
-    <footer class="footer" id="note"></footer>
+    <footer class="footer">
+      Type a ticker → Load → ★ Save to add to Favorites
+    </footer>
   </main>
 
-  <!-- Bump v=1 → v=2 if Notion caches older JS -->
   <script src="./app.js?v=2"></script>
 </body>
 </html>
