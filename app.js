@@ -1,16 +1,15 @@
 // Notion Stock Widget
-// - Prices/History: Stooq (no key)
-// - Autocomplete + Sector/Industry: Financial Modeling Prep (FMP) (needs key)
+// Prices/History: Stooq (no key)
+// Autocomplete + Sector/Industry: Financial Modeling Prep (FMP) (needs key)
 //
-// FMP docs:
-// - Search endpoints (autocomplete): /stable/search-name, /stable/search-symbol
-// - Company profile: /stable/profile?symbol=...
-// - API key passed as query param
+// Key change: Use direct fetch for FMP, and if CORS blocks it,
+// fall back to AllOrigins RAW proxy (CORS-friendly).
+// AllOrigins RAW: https://api.allorigins.win/raw?url=ENCODED_URL
 
 const STORAGE_WATCH = "nsw_watchlist_v1";
 const STORAGE_KEY   = "nsw_fmp_key_v1";
 
-const DEFAULT_TICKER = "AAPL"; // user-friendly default
+const DEFAULT_TICKER = "AAPL";
 
 function $(id){ return document.getElementById(id); }
 
@@ -21,22 +20,17 @@ function fmtTime(){
 
 function setMsg(text){
   const el = $("msg");
+  if (!el) return;
   if (!text){ el.hidden = true; el.textContent = ""; return; }
   el.hidden = false;
   el.textContent = text;
 }
 
 function normalizeTicker(input){
-  // Accept: "AAPL", "aapl", "aapl.us", "TSLA.US"
-  // Stooq US format uses lowercase + ".us"
   let t = (input ?? "").trim();
   if (!t) return null;
   t = t.replace(/\s+/g, "");
-
-  // If user included market suffix already
   if (t.includes(".")) return t.toLowerCase();
-
-  // Default to US for Stooq history
   return `${t.toLowerCase()}.us`;
 }
 
@@ -72,6 +66,8 @@ function clearFmpKey(){
 
 function ensureWatchSelect(list){
   const sel = $("watchSelect");
+  if (!sel) return;
+
   sel.innerHTML = "";
 
   const opt0 = document.createElement("option");
@@ -129,28 +125,45 @@ function sparkPath(values){
   return d;
 }
 
-async function fetchWithRelayFallback(url){
-  // Try direct fetch first; if CORS blocks, fallback to r.jina.ai relay.
+/* -----------------------------
+   CORS-safe JSON fetch
+-------------------------------- */
+
+async function fetchJsonCORS(url){
+  // Try direct first (best/fastest if CORS allows)
   try{
     const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP error");
-    return await res.text();
-  } catch {
-    const relay = `https://r.jina.ai/${url.replace(/^https?:\/\//, "https://")}`;
-    const res2 = await fetch(relay, { cache: "no-store" });
-    if (!res2.ok) throw new Error("Relay fetch failed");
-    return await res2.text();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e1){
+    // Fallback: AllOrigins RAW proxy (CORS-friendly)
+    // Docs/examples: https://api.allorigins.win/raw?url=... :contentReference[oaicite:1]{index=1}
+    const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const res2 = await fetch(proxied, { cache: "no-store" });
+    if (!res2.ok) throw new Error(`AllOrigins HTTP ${res2.status}`);
+    const text = await res2.text();
+    // JSON parse
+    return JSON.parse(text);
   }
 }
 
-async function fetchStooqHistory(stooqTicker){
-  // Stooq URL: https://stooq.com/q/d/l/?s=aapl.us&i=d
-  const stooq = `https://stooq.com/q/d/l/?s=${encodeURIComponent(stooqTicker)}&i=d`;
-  const text = await fetchWithRelayFallback(stooq);
+/* -----------------------------
+   Stooq (CSV) history
+-------------------------------- */
 
+async function fetchStooqHistory(stooqTicker){
+  const stooq = `https://stooq.com/q/d/l/?s=${encodeURIComponent(stooqTicker)}&i=d`;
+
+  // Stooq may also be CORS-blocked; use AllOrigins RAW to keep it consistent.
+  const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(stooq)}`;
+  const res = await fetch(proxied, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Stooq HTTP ${res.status}`);
+
+  const text = await res.text();
   const idx = text.indexOf("Date,Open,High,Low,Close,Volume");
   if (idx === -1) throw new Error("No CSV data (invalid ticker?)");
   const csv = text.slice(idx).trim();
+
   return parseCSV(csv);
 }
 
@@ -174,75 +187,64 @@ function trendLabel(rows){
   return "Near 20D";
 }
 
-/* ---------- FMP: autocomplete + profile (sector/industry) ---------- */
-
-function setMetaPills(sector, industry){
-  const sP = $("sectorPill");
-  const iP = $("industryPill");
-
-  if (sector){
-    sP.textContent = sector;
-    sP.hidden = false;
-  } else {
-    sP.hidden = true;
-  }
-
-  if (industry){
-    iP.textContent = industry;
-    iP.hidden = false;
-  } else {
-    iP.hidden = true;
-  }
-}
+/* -----------------------------
+   FMP: search + profile
+   Endpoints:
+   - https://financialmodelingprep.com/stable/search-name?query=...&apikey=...
+   - https://financialmodelingprep.com/stable/profile?symbol=AAPL&apikey=...
+   Docs: :contentReference[oaicite:2]{index=2}
+-------------------------------- */
 
 async function fmpSearch(query){
   const key = getFmpKey();
   if (!key) return [];
 
-  // Name search tends to be friendlier for "Apple", "Microsoft", etc.
-  const url = `https://financialmodelingprep.com/stable/search-name?query=${encodeURIComponent(query)}&apikey=${encodeURIComponent(key)}`;
-  const text = await fetchWithRelayFallback(url);
+  const url =
+    `https://financialmodelingprep.com/stable/search-name?query=${encodeURIComponent(query)}&apikey=${encodeURIComponent(key)}`;
 
-  // If relay was used, it may include extra framing text. Extract JSON by finding first "[".
-  const start = text.indexOf("[");
-  if (start === -1) return [];
-  const jsonText = text.slice(start).trim();
+  const data = await fetchJsonCORS(url);
+  if (!Array.isArray(data)) return [];
 
-  try{
-    const data = JSON.parse(jsonText);
-    if (!Array.isArray(data)) return [];
-    // Keep it sane: prioritize US listings
-    const cleaned = data
-      .filter(x => x && x.symbol && x.name)
-      .slice(0, 10);
-    return cleaned;
-  } catch {
-    return [];
-  }
+  // Keep list tight and usable in Notion
+  return data
+    .filter(x => x && x.symbol && x.name)
+    .slice(0, 10);
 }
 
 async function fmpProfile(symbol){
-  // symbol is like "AAPL" (not stooq format)
   const key = getFmpKey();
   if (!key) return null;
 
-  const url = `https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(key)}`;
-  const text = await fetchWithRelayFallback(url);
+  const url =
+    `https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(symbol)}&apikey=${encodeURIComponent(key)}`;
 
-  const start = text.indexOf("[");
-  if (start === -1) return null;
-  const jsonText = text.slice(start).trim();
+  const data = await fetchJsonCORS(url);
+  if (!Array.isArray(data) || !data.length) return null;
+  return data[0];
+}
 
-  try{
-    const arr = JSON.parse(jsonText);
-    if (!Array.isArray(arr) || !arr.length) return null;
-    return arr[0];
-  } catch {
-    return null;
+/* -----------------------------
+   UI helpers: sector/industry pills
+-------------------------------- */
+
+function setMetaPills(sector, industry){
+  const sP = $("sectorPill");
+  const iP = $("industryPill");
+
+  if (sP){
+    if (sector){ sP.textContent = sector; sP.hidden = false; }
+    else sP.hidden = true;
+  }
+
+  if (iP){
+    if (industry){ iP.textContent = industry; iP.hidden = false; }
+    else iP.hidden = true;
   }
 }
 
-/* ---------- Render ---------- */
+/* -----------------------------
+   Render
+-------------------------------- */
 
 function render(rows, stooqTicker, profile){
   const last = rows[rows.length - 1];
@@ -295,42 +297,46 @@ function render(rows, stooqTicker, profile){
   $("sparkMeta").textContent = closes60.length ? `Spark: last ${closes60.length} closes` : "";
 
   if (!getFmpKey()){
-    $("note").textContent = "Tip: Add your FMP API key in Settings to enable autocomplete + sector/industry. Prices still work without it.";
+    $("note").textContent = "Add your FMP API key in Settings to enable autocomplete + sector/industry. Prices still work without it.";
   } else {
-    $("note").textContent = "Tip: type a ticker or company name and pick from the dropdown. Click ★ Save to add to Favorites.";
+    $("note").textContent = "Type a ticker or company name and pick from the dropdown. Click ★ Save to add to Favorites.";
   }
 }
 
+/* -----------------------------
+   Load ticker
+-------------------------------- */
+
 async function loadTicker(userInput){
-  // userInput may be "AAPL" or "Apple" (if they type name and press Load)
   const raw = (userInput ?? "").trim();
   if (!raw){
     setMsg("Type a ticker (AAPL) or search a company name.");
     return null;
   }
 
-  // If they typed a company name and have key, try to resolve to a symbol first.
-  let symbolForProfile = raw.toUpperCase().replace(/[^A-Z0-9.\-]/g, "");
-  let stooqTicker = null;
+  const hasKey = !!getFmpKey();
 
-  // Basic heuristic: if input has letters and is short-ish, treat as ticker.
-  // Otherwise attempt FMP search.
+  // If user typed a company name and we have a key, resolve to the first match
   const looksLikeTicker = /^[A-Za-z.\-]{1,8}$/.test(raw);
 
-  if (!looksLikeTicker && getFmpKey()){
+  let symbolForProfile = raw.split(".")[0].toUpperCase();
+  let stooqTicker = normalizeTicker(symbolForProfile);
+
+  if (!looksLikeTicker && hasKey){
     setMsg("Searching…");
-    const results = await fmpSearch(raw);
-    if (results.length){
+    try{
+      const results = await fmpSearch(raw);
+      if (!results.length){
+        setMsg("No matches. Try a ticker (AAPL, TSLA, SPY).");
+        return null;
+      }
       symbolForProfile = String(results[0].symbol || "").toUpperCase();
       stooqTicker = normalizeTicker(symbolForProfile);
-    } else {
-      setMsg("No matches. Try a ticker symbol (AAPL, TSLA, SPY).");
+    } catch (e){
+      console.error(e);
+      setMsg("Search failed. Check API key or try a ticker.");
       return null;
     }
-  } else {
-    // ticker path
-    symbolForProfile = raw.split(".")[0].toUpperCase();
-    stooqTicker = normalizeTicker(symbolForProfile);
   }
 
   if (!stooqTicker){
@@ -341,10 +347,7 @@ async function loadTicker(userInput){
   setMsg("Loading…");
 
   try{
-    // load profile (optional)
-    const profile = getFmpKey() ? await fmpProfile(symbolForProfile) : null;
-
-    // load price history
+    const profile = hasKey ? await fmpProfile(symbolForProfile) : null;
     const rows = await fetchStooqHistory(stooqTicker);
     if (!rows.length) throw new Error("No rows");
     render(rows, stooqTicker, profile);
@@ -357,11 +360,15 @@ async function loadTicker(userInput){
   }
 }
 
-/* ---------- Autocomplete UI ---------- */
+/* -----------------------------
+   Autocomplete UI
+-------------------------------- */
 
 function setupAutocomplete(){
   const input = $("tickerInput");
   const box = $("suggestions");
+
+  if (!input || !box) return;
 
   let debounceTimer = null;
 
@@ -405,6 +412,7 @@ function setupAutocomplete(){
       const sym = String(r.symbol || "").toUpperCase();
       const nm  = String(r.name || "");
       const exch = (r.exchangeShortName || r.exchange || "").toString();
+
       div.innerHTML = `<div>
         <div><strong>${sym}</strong> — ${nm}</div>
         <div class="sub">${exch}</div>
@@ -429,9 +437,13 @@ function setupAutocomplete(){
     if (q.length < 2) { hide(); return; }
 
     debounceTimer = setTimeout(async () => {
-      // Only autocomplete if key exists; otherwise we show “needs key”.
-      const results = getFmpKey() ? await fmpSearch(q) : [];
-      show(results, q);
+      try{
+        const results = getFmpKey() ? await fmpSearch(q) : [];
+        show(results, q);
+      } catch (e){
+        console.error(e);
+        show([], q);
+      }
     }, 250);
   });
 
@@ -449,7 +461,9 @@ function setupAutocomplete(){
   });
 }
 
-/* ---------- Setup ---------- */
+/* -----------------------------
+   Setup
+-------------------------------- */
 
 function setup(){
   const watchlist = loadWatchlist();
@@ -511,7 +525,7 @@ function setup(){
       return;
     }
     setFmpKey(k);
-    setMsg("Saved API key. Autocomplete enabled.");
+    setMsg("Saved API key. Autocomplete + industry enabled.");
     setTimeout(()=>setMsg(""), 1200);
   });
 
@@ -522,7 +536,6 @@ function setup(){
     setTimeout(()=>setMsg(""), 1200);
   });
 
-  // Initial load: allow ?t=TSLA in URL, else default
   const fromUrl = new URL(window.location.href).searchParams.get("t");
   loadTicker(fromUrl || DEFAULT_TICKER);
 }
