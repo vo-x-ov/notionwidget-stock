@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Stock Card</title>
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./style.css?v=3" />
 </head>
 <body>
   <main class="card" aria-live="polite">
@@ -12,7 +12,6 @@
       <div class="left">
         <div class="titleRow">
           <div class="symbol" id="symbol">—</div>
-          <div class="name" id="name"></div>
         </div>
         <div class="time" id="time"></div>
       </div>
@@ -26,9 +25,35 @@
 
           <div class="row row2">
             <select id="watchSelect" class="select"></select>
-            <button id="saveBtn" class="btn ghost" title="Save to watchlist">★ Save</button>
-            <button id="removeBtn" class="btn ghost" title="Remove from watchlist">✕</button>
+            <button id="saveBtn" class="btn ghost">★ Save</button>
+            <button id="removeBtn" class="btn ghost">✕</button>
           </div>
+
+          <details class="settings">
+            <summary>Settings</summary>
+            <div class="settingsInner">
+              <div class="settingRow">
+                <label for="upColor">Up</label>
+                <input id="upColor" type="color" />
+              </div>
+              <div class="settingRow">
+                <label for="downColor">Down</label>
+                <input id="downColor" type="color" />
+              </div>
+              <div class="settingRow">
+                <label for="flatColor">Neutral</label>
+                <input id="flatColor" type="color" />
+              </div>
+
+              <div class="row">
+                <button id="resetColorsBtn" class="btn ghost">Reset colors</button>
+              </div>
+
+              <div class="hint">
+                These colors are saved on this device/browser.
+              </div>
+            </div>
+          </details>
 
           <div id="msg" class="msg" hidden></div>
         </div>
@@ -42,10 +67,9 @@
       </div>
 
       <div class="sparkWrap">
-        <svg id="spark" viewBox="0 0 200 60" preserveAspectRatio="none" aria-label="Price sparkline">
+        <svg id="spark" viewBox="0 0 200 60" preserveAspectRatio="none">
           <path id="sparkPath" d="" />
         </svg>
-        <div class="sparkMeta" id="sparkMeta"></div>
       </div>
     </section>
 
@@ -60,10 +84,11 @@
       <div class="kv"><span>Trend</span><strong id="trend">—</strong></div>
     </section>
 
-    <footer class="footer" id="note"></footer>
+    <footer class="footer">
+      Type a ticker → Load → ★ Save to add to Favorites
+    </footer>
   </main>
 
-  <!-- Bump v=1 → v=2 if Notion caches older JS -->
-  <script src="./app.js?v=1"></script>
+  <script src="./app.js?v=3"></script>
 </body>
 </html>
