@@ -14,13 +14,20 @@
           <div class="symbol" id="symbol">—</div>
           <div class="name" id="name"></div>
         </div>
+        <div class="metaRow">
+          <span class="pill" id="sectorPill" hidden></span>
+          <span class="pill" id="industryPill" hidden></span>
+        </div>
         <div class="time" id="time"></div>
       </div>
 
       <div class="controls">
         <div class="picker">
           <div class="row">
-            <input id="tickerInput" type="text" placeholder="Type ticker (AAPL, TSLA, SPY)..." autocomplete="off" />
+            <div class="inputWrap">
+              <input id="tickerInput" type="text" placeholder="Type ticker or company (AAPL, Apple, SPY)..." autocomplete="off" />
+              <div id="suggestions" class="suggestions" hidden></div>
+            </div>
             <button id="loadBtn" class="btn">Load</button>
           </div>
 
@@ -29,6 +36,19 @@
             <button id="saveBtn" class="btn ghost" title="Save to watchlist">★ Save</button>
             <button id="removeBtn" class="btn ghost" title="Remove from watchlist">✕</button>
           </div>
+
+          <details class="settings">
+            <summary>Settings</summary>
+            <div class="settingsInner">
+              <label class="lbl" for="apiKeyInput">FMP API Key (enables autocomplete + sector/industry)</label>
+              <input id="apiKeyInput" type="password" placeholder="Paste your FMP key here…" autocomplete="off" />
+              <div class="hint" id="keyHint">
+                If you leave this blank, the widget still loads prices, but search + industry will be limited.
+              </div>
+              <button id="saveKeyBtn" class="btn">Save Key</button>
+              <button id="clearKeyBtn" class="btn ghost">Clear</button>
+            </div>
+          </details>
 
           <div id="msg" class="msg" hidden></div>
         </div>
@@ -58,6 +78,8 @@
       <div class="kv"><span>52W Low</span><strong id="lo52">—</strong></div>
       <div class="kv"><span>Range</span><strong id="range">—</strong></div>
       <div class="kv"><span>Trend</span><strong id="trend">—</strong></div>
+      <div class="kv"><span>Sector</span><strong id="sector">—</strong></div>
+      <div class="kv"><span>Industry</span><strong id="industry">—</strong></div>
     </section>
 
     <footer class="footer" id="note"></footer>
